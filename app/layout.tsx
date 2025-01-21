@@ -35,6 +35,7 @@ export default function RootLayout({
 							className='py-1'
 							href="https://www.linkedin.com/in/wiley-swikit/"
 							target="_blank"
+							rel="noopener noreferrer"
 						>
 							<BsLinkedin />
 						</a>
@@ -43,6 +44,7 @@ export default function RootLayout({
 							className='py-1'
 							href="https://github.com/WildE-dev"
 							target="_blank"
+							rel="noopener noreferrer"
 						>
 							<FaGithubSquare />
 						</a>
