@@ -1,4 +1,5 @@
-import CanvasEffect from "../components/CanvasEffect"
+import BlobGuy from "../components/BlobGuy"
+
 
 export default function GamesLayout({
 	children,
@@ -7,7 +8,7 @@ export default function GamesLayout({
 }) {
 	return (
         <div>
-            <CanvasEffect />
+            <BlobGuy />
             <h1 className='text-8xl text-center font-bold mb-8'>
 				Test
 			</h1>

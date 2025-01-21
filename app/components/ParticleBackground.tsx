@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const CanvasEffect: React.FC = () => {
+const ParticleBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const targetPosition = useRef<{ x: number; y: number } | null>(null);
 
@@ -135,4 +135,4 @@ const CanvasEffect: React.FC = () => {
   return <canvas ref={canvasRef} style={{ position: "fixed", top: 0, left: 0, zIndex: -1 }} />;
 };
 
-export default CanvasEffect;
+export default ParticleBackground;
