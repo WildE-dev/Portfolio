@@ -8,7 +8,6 @@ export default function GamesLayout({
 }) {
 	return (
         <div>
-            <BlobGuy />
             <h1 className='text-8xl text-center font-bold mb-8'>
 				Test
 			</h1>

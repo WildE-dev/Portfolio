@@ -6,7 +6,7 @@ const BlobGuy: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gravity = 0.5;
   const drag = 0.95;
-  const friction = 0.8; // To reduce energy after bouncing
+  const friction = 0.6; // To reduce energy after bouncing
   const mouse = { x: 0, y: 0, isDown: false };
 
   useEffect(() => {
@@ -23,11 +23,16 @@ const BlobGuy: React.FC = () => {
     const colors = ["#ff7f50", "#00bfff", "#32cd32", "#ffa500"];
     const blobColor = colors[Math.floor(Math.random() * colors.length)];
 
-    const stiffness = 0.2; // Spring stiffness
-    const damping = 0.1; // Damping to stabilize movement
+    const stiffness = 0.3; // Spring stiffness
+    const damping = 0.2; // Damping to stabilize movement
     const nodes: Node[] = [];
     const nodeCount = 20; // Number of points for the blob shape
     const blobRadius = 100;
+
+    const jumpTime = 5;
+    let jumpTimer = 0;
+
+    let lastTime = 0;
 
     class Node {
       x: number;
@@ -54,7 +59,7 @@ const BlobGuy: React.FC = () => {
           const dy = nodes[i].y - this.y;
           let distance = Math.sqrt(dx * dx + dy * dy);
           const force = stiffness * (distance - this.dists[i]);
-          
+
           if (distance == 0 || isNaN(distance)) {
             distance = 0.000001;
           }
@@ -73,14 +78,20 @@ const BlobGuy: React.FC = () => {
         this.vx *= drag;
         this.vy *= drag;
 
+        const mx = this.x - mouse.x;
+        const my = this.y - mouse.y;
+
+        if (jumpTimer > jumpTime) {
+          //this.vx -= Math.min(mx * 0.05, 25);
+          //this.vy -= Math.min(my * 0.1, 25);
+        }
+
         // Repel from mouse when pressed
         if (mouse.isDown) {
-          const mx = this.x - mouse.x;
-          const my = this.y - mouse.y;
           const mouseDistance = Math.sqrt(mx * mx + my * my);
           if (mouseDistance < 150) {
-            this.vx += (mx / mouseDistance) * 5;
-            this.vy += (my / mouseDistance) * 5;
+            this.vx -= (mx / mouseDistance) * 5;
+            this.vy -= (my / mouseDistance) * 5;
           }
         }
 
@@ -91,23 +102,23 @@ const BlobGuy: React.FC = () => {
         // Apply friction and prevent moving off canvas
         if (this.x > windowWidth) {
           this.x = windowWidth;
-          this.vx *= -friction; 
-          this.vy *= friction; 
+          this.vx *= -friction;
+          this.vy *= friction;
         }
         if (this.x < 0) {
           this.x = 0;
           this.vx *= -friction;
-          this.vy *= friction; 
+          this.vy *= friction;
         }
         if (this.y > windowHeight) {
           this.y = windowHeight;
-          this.vy *= -friction; 
-          this.vx *= friction; 
+          this.vy *= -friction;
+          this.vx *= friction;
         }
         if (this.y < 0) {
           this.y = 0;
-          this.vy *= -friction; 
-          this.vx *= friction; 
+          this.vy *= -friction;
+          this.vx *= friction;
         }
       }
     }
@@ -133,23 +144,70 @@ const BlobGuy: React.FC = () => {
 
     function drawBlob() {
       if (!ctx) return;
+
       ctx.fillStyle = blobColor;
       ctx.beginPath();
       ctx.moveTo(nodes[0].x, nodes[0].y);
-      for (let i = 1; i < nodes.length; i++) {
-        ctx.lineTo(nodes[i].x, nodes[i].y);
+
+      let centerX = 0;
+      let centerY = 0;
+
+      for (let i = 0; i < nodes.length; i++) {
+        // Get the current and next node
+        const currentNode = nodes[i];
+        const nextNode = nodes[(i + 1) % nodes.length]; // Wrap around to the first node
+
+        centerX += currentNode.x;
+        centerY += currentNode.y;
+
+        // Calculate control point as midpoint between current and next node
+        const controlX = (currentNode.x + nextNode.x) / 2;
+        const controlY = (currentNode.y + nextNode.y) / 2;
+
+        // Draw a quadratic curve to the control point
+        ctx.quadraticCurveTo(currentNode.x, currentNode.y, controlX, controlY);
       }
+
+      centerX /= nodeCount;
+      centerY /= nodeCount;
+
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+
+      ctx.moveTo((nodes[0].x + centerX) / 2, (nodes[0].y + centerY) / 2);
+      ctx.lineTo((nodes[5].x + centerX) / 2, (nodes[5].y + centerY) / 2);
+      ctx.lineTo((nodes[10].x + centerX) / 2, (nodes[10].y + centerY) / 2);
+
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc((nodes[13].x + centerX) / 2, (nodes[14].y + centerY) / 2, 15, 0, Math.PI * 2);
+      ctx.arc((nodes[17].x + centerX) / 2, (nodes[16].y + centerY) / 2, 15, 0, Math.PI * 2);
       ctx.closePath();
       ctx.fill();
     }
-
-    function animate() {
+      
+    function animate(timestamp: DOMHighResTimeStamp) {
       if (!ctx) return;
+
+      const dt = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+
+      jumpTimer += dt;
+
       ctx.clearRect(0, 0, windowWidth, windowHeight);
 
       nodes.forEach((node) => {
         node.update();
       });
+
+      if (jumpTimer > jumpTime) {
+        jumpTimer = 0;
+      }
 
       drawBlob();
 
@@ -162,15 +220,18 @@ const BlobGuy: React.FC = () => {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
       mouse.x = e.clientX;
       mouse.y = e.clientY;
     };
 
-    const handleMouseDown = () => {
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
       mouse.isDown = true;
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
       mouse.isDown = false;
     };
 
@@ -186,7 +247,7 @@ const BlobGuy: React.FC = () => {
     window.addEventListener("mouseup", handleMouseUp);
     findInteractiveElements();
 
-    animate();
+    requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -196,7 +257,7 @@ const BlobGuy: React.FC = () => {
     };
   }, []);
 
-  return <canvas ref={canvasRef} style={{ position: "fixed", top: 0, left: 0, zIndex: -1 }} />;
+  return <canvas ref={canvasRef} style={{ pointerEvents: "none", position: "fixed", top: 0, left: 0, zIndex: 9999 }} />;
 };
 
 export default BlobGuy;
