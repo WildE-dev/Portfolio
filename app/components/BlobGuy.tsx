@@ -29,11 +29,6 @@ const BlobGuy: React.FC = () => {
     const nodeCount = 20; // Number of points for the blob shape
     const blobRadius = 100;
 
-    const jumpTime = 5;
-    let jumpTimer = 0;
-
-    let lastTime = 0;
-
     class Node {
       x: number;
       y: number;
@@ -80,11 +75,6 @@ const BlobGuy: React.FC = () => {
 
         const mx = this.x - mouse.x;
         const my = this.y - mouse.y;
-
-        if (jumpTimer > jumpTime) {
-          //this.vx -= Math.min(mx * 0.05, 25);
-          //this.vy -= Math.min(my * 0.1, 25);
-        }
 
         // Repel from mouse when pressed
         if (mouse.isDown) {
@@ -190,26 +180,26 @@ const BlobGuy: React.FC = () => {
       ctx.closePath();
       ctx.fill();
     }
-      
-    function animate(timestamp: DOMHighResTimeStamp) {
+
+    let lastTime: number;
+    const requiredElapsed = 1000 / 60; // 60 FPS
+
+    function animate(now: DOMHighResTimeStamp) {
       if (!ctx) return;
 
-      const dt = (timestamp - lastTime) / 1000;
-      lastTime = timestamp;
+      if (!lastTime) { lastTime = now; }
+      const elapsed = now - lastTime;
 
-      jumpTimer += dt;
+      if (elapsed > requiredElapsed) {
+        ctx.clearRect(0, 0, windowWidth, windowHeight);
 
-      ctx.clearRect(0, 0, windowWidth, windowHeight);
+        nodes.forEach((node) => {
+          node.update();
+        });
 
-      nodes.forEach((node) => {
-        node.update();
-      });
-
-      if (jumpTimer > jumpTime) {
-        jumpTimer = 0;
+        drawBlob();
+        lastTime = now;
       }
-
-      drawBlob();
 
       requestAnimationFrame(animate);
     }
